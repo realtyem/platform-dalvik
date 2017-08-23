@@ -39,6 +39,11 @@
 # define TRUE (!FALSE)
 #endif
 
+// An attribute to place on a parameter to a function, for example:
+//   int foo(int x ATTRIBUTE_UNUSED) { return 10; }
+// to avoid compiler warnings.
+#define ATTRIBUTE_UNUSED __attribute__((__unused__))
+
 typedef enum HprofBasicType {
     HPROF_BASIC_OBJECT = 2,
     HPROF_BASIC_BOOLEAN = 4,
@@ -401,7 +406,7 @@ static int computeClassDumpLen(const unsigned char* origBuf, int len)
 /*
  * Compute the length of a HPROF_INSTANCE_DUMP block.
  */
-static int computeInstanceDumpLen(const unsigned char* origBuf)
+static int computeInstanceDumpLen(const unsigned char* origBuf, int len ATTRIBUTE_UNUSED)
 {
     int extraCount = get4BE(origBuf + kIdentSize * 2 + 4);
     return kIdentSize * 2 + 8 + extraCount;
@@ -410,7 +415,7 @@ static int computeInstanceDumpLen(const unsigned char* origBuf)
 /*
  * Compute the length of a HPROF_OBJECT_ARRAY_DUMP block.
  */
-static int computeObjectArrayDumpLen(const unsigned char* origBuf)
+static int computeObjectArrayDumpLen(const unsigned char* origBuf, int len ATTRIBUTE_UNUSED)
 {
     int arrayCount = get4BE(origBuf + kIdentSize + 4);
     return kIdentSize * 2 + 8 + arrayCount * kIdentSize;
@@ -419,7 +424,7 @@ static int computeObjectArrayDumpLen(const unsigned char* origBuf)
 /*
  * Compute the length of a HPROF_PRIMITIVE_ARRAY_DUMP block.
  */
-static int computePrimitiveArrayDumpLen(const unsigned char* origBuf)
+static int computePrimitiveArrayDumpLen(const unsigned char* origBuf, int len ATTRIBUTE_UNUSED)
 {
     int arrayCount = get4BE(origBuf + kIdentSize + 4);
     HprofBasicType basicType = origBuf[kIdentSize + 8];
@@ -490,19 +495,19 @@ static int processHeapDump(ExpandBuf* pBuf, FILE* out, int flags)
             subLen = computeClassDumpLen(buf+1, len-1);
             break;
         case HPROF_INSTANCE_DUMP:
-            subLen = computeInstanceDumpLen(buf+1);
+            subLen = computeInstanceDumpLen(buf+1, len-1);
             if (heapIgnore) {
                 justCopy = FALSE;
             }
             break;
         case HPROF_OBJECT_ARRAY_DUMP:
-            subLen = computeObjectArrayDumpLen(buf+1);
+            subLen = computeObjectArrayDumpLen(buf+1, len-1);
             if (heapIgnore) {
                 justCopy = FALSE;
             }
             break;
         case HPROF_PRIMITIVE_ARRAY_DUMP:
-            subLen = computePrimitiveArrayDumpLen(buf+1);
+            subLen = computePrimitiveArrayDumpLen(buf+1, len-1);
             if (heapIgnore) {
                 justCopy = FALSE;
             }
